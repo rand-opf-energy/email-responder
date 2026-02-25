@@ -1,10 +1,31 @@
 /**
+ * Data structure representing a single parsed email message.
+ */
+export interface ParsedEmail {
+    id: string;
+    sender: string;
+    recipient: string;
+    subject: string;
+    date: GoogleAppsScript.Base.Date;
+    body: string;
+}
+
+/**
+ * Data structure representing an entire email conversation history.
+ */
+export interface ParsedThread {
+    threadId: string;
+    subject: string;
+    messages: ParsedEmail[];
+}
+
+/**
  * Fetches unread email threads sent to the specified address.
  * 
  * @param targetEmailAddress The email address the messages must have been sent to (e.g., 'reservations@sanmarinotennis.org')
  * @returns Array of ParsedThread objects containing the full conversation histories
  */
-function getUnreadThreadsForAddress(targetEmailAddress, botEmailAddress) {
+export function getUnreadThreadsForAddress(targetEmailAddress: string, botEmailAddress: string): ParsedThread[] {
     // We search for unread threads where the target address is in the "to" or "cc" fields.
     const query = `is:unread (to:${targetEmailAddress} OR cc:${targetEmailAddress})`;
     console.log(`Searching Gmail for query: ${query}`);
@@ -12,7 +33,7 @@ function getUnreadThreadsForAddress(targetEmailAddress, botEmailAddress) {
     const threads = GmailApp.search(query);
     console.log(`Found ${threads.length} matching unread threads.`);
 
-    const parsedThreads = [];
+    const parsedThreads: ParsedThread[] = [];
 
     for (const thread of threads) {
         const threadId = thread.getId();
@@ -21,7 +42,7 @@ function getUnreadThreadsForAddress(targetEmailAddress, botEmailAddress) {
 
         console.log(`Processing Thread ID: ${threadId} | Subject: "${subject}" | Messages: ${messages.length}`);
 
-        const parsedMessages = messages.map((msg) => {
+        const parsedMessages: ParsedEmail[] = messages.map((msg) => {
             // Prefer plain text body for AI processing
             let body = msg.getPlainBody();
             if (!body) {
@@ -38,13 +59,6 @@ function getUnreadThreadsForAddress(targetEmailAddress, botEmailAddress) {
             };
         });
 
-        // Check if the last message in the thread was sent by us to prevent infinite loops
-        const lastMessage = parsedMessages[parsedMessages.length - 1];
-        if (lastMessage.sender.includes(botEmailAddress)) {
-            console.log(`Skipping Thread ID: ${threadId} because we were the last sender.`);
-            continue;
-        }
-
         // Add a max response count of 10 for the bot itself.
         // After 10 bot messages in the thread, we will simply STOP responding 
         // and ignore the thread so a human can take over.
@@ -57,6 +71,13 @@ function getUnreadThreadsForAddress(targetEmailAddress, botEmailAddress) {
 
         if (botMessageCount >= 10) {
             console.log(`Skipping Thread ID: ${threadId} because the bot has already responded 10 times (needs human review).`);
+            continue;
+        }
+
+        // Check if the last message in the thread was sent by us to prevent infinite loops
+        const lastMessage = parsedMessages[parsedMessages.length - 1];
+        if (lastMessage.sender.includes(botEmailAddress)) {
+            console.log(`Skipping Thread ID: ${threadId} because we were the last sender.`);
             continue;
         }
 
@@ -75,7 +96,7 @@ function getUnreadThreadsForAddress(targetEmailAddress, botEmailAddress) {
  * 
  * @param threadId The ID of the thread to mark as read
  */
-function markThreadAsRead(threadId) {
+export function markThreadAsRead(threadId: string): void {
     const thread = GmailApp.getThreadById(threadId);
     if (thread) {
         thread.markRead();

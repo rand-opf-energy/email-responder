@@ -1,4 +1,5 @@
-// No imports needed in Apps Script (global scope)
+import { getUnreadThreadsForAddress, markThreadAsRead } from "./gmail";
+
 const TARGET_EMAIL_ADDRESS = "reservations@sanmarinotennis.org";
 const BOT_EMAIL_ADDRESS = "skye@sanmarinotennis.org";
 
@@ -60,3 +61,7 @@ function installTrigger() {
 
     console.log(`Successfully installed trigger for ${functionName} to run every minute.`);
 }
+
+// Expose these wrapper functions to the global Apps Script scope since esbuild will bundle them
+(globalThis as any).processEmailsTick = processEmailsTick;
+(globalThis as any).installTrigger = installTrigger;
