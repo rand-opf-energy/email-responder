@@ -1,8 +1,40 @@
+import { getUnreadThreadsForAddress, markThreadAsRead } from "./gmail";
+const TARGET_EMAIL_ADDRESS = "reservations@sanmarinotennis.org";
+const BOT_EMAIL_ADDRESS = "skye@sanmarinotennis.org";
+
 /**
  * Global entry point executed every minute by the time-driven trigger.
  */
 function processEmailsTick() {
-    console.log("Tick: processEmailsTicked called at", new Date().toISOString());
+    console.log(`--- Email Tick Started at ${new Date().toISOString()} ---`);
+
+    const unreadThreads = getUnreadThreadsForAddress(TARGET_EMAIL_ADDRESS, BOT_EMAIL_ADDRESS);
+
+    if (unreadThreads.length === 0) {
+        console.log("No new unread emails found.");
+        return;
+    }
+
+    for (const thread of unreadThreads) {
+        console.log(`\n================================`);
+        console.log(`=== NEW THREAD: ${thread.subject} ===`);
+        console.log(`================================`);
+
+        // Print each message in the thread history
+        for (const [index, msg] of thread.messages.entries()) {
+            console.log(`\n--- Message ${index + 1} ---`);
+            console.log(`From:    ${msg.sender}`);
+            console.log(`To:      ${msg.recipient}`);
+            console.log(`Date:    ${msg.date.toISOString()}`);
+            console.log(`Body:\n${msg.body}`);
+        }
+
+        // For the MVP, just mark it as read so we don't process it next minute.
+        // Eventually, we will send this entire thread to Gemini here.
+        markThreadAsRead(thread.threadId);
+    }
+
+    console.log(`\n--- Email Tick Finished ---`);
 }
 
 /**

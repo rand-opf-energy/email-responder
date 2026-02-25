@@ -1,0 +1,92 @@
+/**
+ * Data structure representing a single parsed email message.
+ */
+export interface ParsedEmail {
+    id: string;
+    sender: string;
+    recipient: string;
+    subject: string;
+    date: GoogleAppsScript.Base.Date;
+    body: string;
+}
+
+/**
+ * Data structure representing an entire email conversation history.
+ */
+export interface ParsedThread {
+    threadId: string;
+    subject: string;
+    messages: ParsedEmail[];
+}
+
+/**
+ * Fetches unread email threads sent to the specified address.
+ * 
+ * @param targetEmailAddress The email address the messages must have been sent to (e.g., 'reservations@sanmarinotennis.org')
+ * @returns Array of ParsedThread objects containing the full conversation histories
+ */
+export function getUnreadThreadsForAddress(targetEmailAddress: string, botEmailAddress: string): ParsedThread[] {
+    // We search for unread threads where the target address is in the "to" or "cc" fields.
+    const query = `is:unread (to:${targetEmailAddress} OR cc:${targetEmailAddress})`;
+    console.log(`Searching Gmail for query: ${query}`);
+
+    const threads = GmailApp.search(query);
+    console.log(`Found ${threads.length} matching unread threads.`);
+
+    const parsedThreads: ParsedThread[] = [];
+
+    for (const thread of threads) {
+        const threadId = thread.getId();
+        const subject = thread.getFirstMessageSubject();
+        const messages = thread.getMessages();
+
+        console.log(`Processing Thread ID: ${threadId} | Subject: "${subject}" | Messages: ${messages.length}`);
+
+        const parsedMessages: ParsedEmail[] = messages.map((msg) => {
+            // Prefer plain text body for AI processing
+            let body = msg.getPlainBody();
+            if (!body) {
+                body = msg.getBody(); // fallback to HTML if no plain text
+            }
+
+            return {
+                id: msg.getId(),
+                sender: msg.getFrom(),
+                recipient: msg.getTo(),
+                subject: msg.getSubject(),
+                date: msg.getDate(),
+                body: body,
+            };
+        });
+
+        // Check if the last message in the thread was sent by us to prevent infinite loops
+        const lastMessage = parsedMessages[parsedMessages.length - 1];
+        if (lastMessage.sender.includes(botEmailAddress)) {
+            console.log(`Skipping Thread ID: ${threadId} because we were the last sender.`);
+            continue;
+        }
+
+        parsedThreads.push({
+            threadId,
+            subject,
+            messages: parsedMessages
+        });
+    }
+
+    return parsedThreads;
+}
+
+/**
+ * Marks a specific thread as read so it is not processed again on the next tick.
+ * 
+ * @param threadId The ID of the thread to mark as read
+ */
+export function markThreadAsRead(threadId: string): void {
+    const thread = GmailApp.getThreadById(threadId);
+    if (thread) {
+        thread.markRead();
+        console.log(`Marked thread ${threadId} as read.`);
+    } else {
+        console.error(`Failed to find thread ${threadId} to mark as read.`);
+    }
+}
