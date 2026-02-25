@@ -45,6 +45,21 @@ function getUnreadThreadsForAddress(targetEmailAddress, botEmailAddress) {
             continue;
         }
 
+        // Add a max response count of 10 for the bot itself.
+        // After 10 bot messages in the thread, we will simply STOP responding 
+        // and ignore the thread so a human can take over.
+        let botMessageCount = 0;
+        for (let i = 0; i < parsedMessages.length; i++) {
+            if (parsedMessages[i].sender.includes(botEmailAddress)) {
+                botMessageCount++;
+            }
+        }
+
+        if (botMessageCount >= 10) {
+            console.log(`Skipping Thread ID: ${threadId} because the bot has already responded 10 times (needs human review).`);
+            continue;
+        }
+
         parsedThreads.push({
             threadId,
             subject,
