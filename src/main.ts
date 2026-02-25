@@ -1,4 +1,5 @@
 import { getUnreadThreadsForAddress, markThreadAsRead } from "./gmail";
+import { generateGeminiResponse } from "./gemini";
 
 const TARGET_EMAIL_ADDRESS = "reservations@sanmarinotennis.org";
 const BOT_EMAIL_ADDRESS = "skye@sanmarinotennis.org";
@@ -30,9 +31,29 @@ function processEmailsTick() {
             console.log(`Body:\n${msg.body}`);
         }
 
-        // For the MVP, just mark it as read so we don't process it next minute.
-        // Eventually, we will send this entire thread to Gemini here.
-        markThreadAsRead(thread.threadId);
+        try {
+            console.log("Generating response from Vertex AI...");
+            const aiResponse = generateGeminiResponse(thread, BOT_EMAIL_ADDRESS);
+
+            console.log(`\n================================`);
+            console.log(`=== AI RESPONSE ===`);
+            console.log(`================================`);
+            console.log(aiResponse);
+
+            // We use the Thread's underlying GmailApp object to append the reply to the current email chain
+            const nativeThread = GmailApp.getThreadById(thread.threadId);
+            if (nativeThread) {
+                console.log("Sending reply via Gmail API (reply-only, not reply-all)...");
+                const disclaimer = "⚠️ [INTERNAL TESTING] This is an automated response from the email responder bot. Do NOT forward or send this outside the team yet. ⚠️\n\n";
+                nativeThread.reply(disclaimer + aiResponse);
+
+                // Immediately mark as read to avoid the 1-minute trigger picking it up again
+                markThreadAsRead(thread.threadId);
+            }
+        } catch (e: any) {
+            console.error(`Error processing thread ${thread.threadId}: ${e.message}`);
+            // Do NOT mark as read if it failed, so we can retry on the next tick
+        }
     }
 
     console.log(`\n--- Email Tick Finished ---`);

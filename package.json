@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "esbuild src/main.ts --bundle --outfile=dist/main.js && shx cp src/appsscript.json dist/appsscript.json",
+    "build": "esbuild src/main.ts --bundle --outfile=dist/main.js && shx cp src/appsscript.json dist/appsscript.json && shx cp src/exports.js dist/exports.js",
     "deploy": "npm run build && clasp push",
     "test": "jest"
   },
