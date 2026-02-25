@@ -1,31 +1,10 @@
 /**
- * Data structure representing a single parsed email message.
- */
-export interface ParsedEmail {
-    id: string;
-    sender: string;
-    recipient: string;
-    subject: string;
-    date: GoogleAppsScript.Base.Date;
-    body: string;
-}
-
-/**
- * Data structure representing an entire email conversation history.
- */
-export interface ParsedThread {
-    threadId: string;
-    subject: string;
-    messages: ParsedEmail[];
-}
-
-/**
  * Fetches unread email threads sent to the specified address.
  * 
  * @param targetEmailAddress The email address the messages must have been sent to (e.g., 'reservations@sanmarinotennis.org')
  * @returns Array of ParsedThread objects containing the full conversation histories
  */
-export function getUnreadThreadsForAddress(targetEmailAddress: string, botEmailAddress: string): ParsedThread[] {
+function getUnreadThreadsForAddress(targetEmailAddress, botEmailAddress) {
     // We search for unread threads where the target address is in the "to" or "cc" fields.
     const query = `is:unread (to:${targetEmailAddress} OR cc:${targetEmailAddress})`;
     console.log(`Searching Gmail for query: ${query}`);
@@ -33,7 +12,7 @@ export function getUnreadThreadsForAddress(targetEmailAddress: string, botEmailA
     const threads = GmailApp.search(query);
     console.log(`Found ${threads.length} matching unread threads.`);
 
-    const parsedThreads: ParsedThread[] = [];
+    const parsedThreads = [];
 
     for (const thread of threads) {
         const threadId = thread.getId();
@@ -42,7 +21,7 @@ export function getUnreadThreadsForAddress(targetEmailAddress: string, botEmailA
 
         console.log(`Processing Thread ID: ${threadId} | Subject: "${subject}" | Messages: ${messages.length}`);
 
-        const parsedMessages: ParsedEmail[] = messages.map((msg) => {
+        const parsedMessages = messages.map((msg) => {
             // Prefer plain text body for AI processing
             let body = msg.getPlainBody();
             if (!body) {
@@ -81,7 +60,7 @@ export function getUnreadThreadsForAddress(targetEmailAddress: string, botEmailA
  * 
  * @param threadId The ID of the thread to mark as read
  */
-export function markThreadAsRead(threadId: string): void {
+function markThreadAsRead(threadId) {
     const thread = GmailApp.getThreadById(threadId);
     if (thread) {
         thread.markRead();

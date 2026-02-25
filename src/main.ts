@@ -1,4 +1,4 @@
-import { getUnreadThreadsForAddress, markThreadAsRead } from "./gmail";
+// No imports needed in Apps Script (global scope)
 const TARGET_EMAIL_ADDRESS = "reservations@sanmarinotennis.org";
 const BOT_EMAIL_ADDRESS = "skye@sanmarinotennis.org";
 
