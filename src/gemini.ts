@@ -29,13 +29,28 @@ export function generateGeminiResponse(thread: ParsedThread, botEmailAddress: st
     // Construct the conversation history for the Vertex API
     const contents: VertexContent[] = thread.messages.map((msg) => {
         const isBot = msg.sender.includes(botEmailAddress);
+        let textForModel = msg.body;
 
-        // We prefix the text with the sender/date to give the model context about exactly who said what and when in the email metadata
-        const contextualText = `[From: ${msg.sender} | Date: ${msg.date.toString()}]\n\n${msg.body}`;
+        if (isBot) {
+            // Strip the signature so the model doesn't learn to generate it
+            const signatureIndex = textForModel.indexOf(`\n\n${CONFIG.SIGNATURE}`);
+            if (signatureIndex !== -1) {
+                textForModel = textForModel.substring(0, signatureIndex);
+            }
+
+            // Strip the appended quoted history starting with "\n\nOn "
+            const quoteIndex = textForModel.lastIndexOf("\n\nOn ");
+            if (quoteIndex !== -1) {
+                textForModel = textForModel.substring(0, quoteIndex);
+            }
+        } else {
+            // Only prefix text with the sender/date for user messages to give the model context
+            textForModel = `[From: ${msg.sender} | Date: ${msg.date.toString()}]\n\n${textForModel}`;
+        }
 
         return {
             role: isBot ? "model" : "user",
-            parts: [{ text: contextualText }],
+            parts: [{ text: textForModel }],
         };
     });
 

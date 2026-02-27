@@ -1,5 +1,6 @@
 import { getUnreadThreadsForAddress, markThreadAsRead } from "./gmail";
 import { generateGeminiResponse } from "./gemini";
+import { CONFIG } from "./config";
 
 const TARGET_EMAIL_ADDRESS = "reservations@sanmarinotennis.org";
 const BOT_EMAIL_ADDRESS = "skye@sanmarinotennis.org";
@@ -32,24 +33,43 @@ function processEmailsTick() {
         }
 
         try {
-            console.log("Generating response from Vertex AI...");
-            const aiResponse = generateGeminiResponse(thread, BOT_EMAIL_ADDRESS);
+            let aiResponse = "";
+
+            if (thread.isEscalated) {
+                console.log("Thread is flagged for escalation. Skipping Vertex AI...");
+                aiResponse = CONFIG.ESCALATION_MESSAGE;
+            } else {
+                console.log("Generating response from Vertex AI...");
+                aiResponse = generateGeminiResponse(thread, BOT_EMAIL_ADDRESS);
+            }
 
             console.log(`\n================================`);
             console.log(`=== AI RESPONSE ===`);
             console.log(`================================`);
             console.log(aiResponse);
 
-            // We use the Thread's underlying GmailApp object to append the reply to the current email chain
-            const nativeThread = GmailApp.getThreadById(thread.threadId);
-            if (nativeThread) {
-                console.log("Sending reply via Gmail API (reply-only, not reply-all)...");
-                const disclaimer = "⚠️ [INTERNAL TESTING] This is an automated response from the email responder bot. Do NOT forward or send this outside the team yet. ⚠️\n\n";
-                nativeThread.reply(disclaimer + aiResponse);
+            const bodyContent = thread.isEscalated ? aiResponse : `${aiResponse}\n\n${CONFIG.SIGNATURE}`;
 
-                // Immediately mark as read to avoid the 1-minute trigger picking it up again
-                markThreadAsRead(thread.threadId);
+            try {
+                const gmailThread = GmailApp.getThreadById(thread.threadId);
+                if (gmailThread) {
+                    const options: GoogleAppsScript.Gmail.GmailAdvancedOptions = {};
+                    if (thread.isEscalated) {
+                        options.bcc = CONFIG.ESCALATION_EMAIL;
+                    }
+
+                    gmailThread.replyAll(bodyContent, options);
+                    console.log("Reply sent successfully via replyAll.");
+                } else {
+                    console.error("Failed to retrieve the Gmail thread to reply to.");
+                }
+            } catch (innerErr: any) {
+                console.error("Failed to send reply:", innerErr);
+                throw innerErr; // Re-throw to be caught by the outer catch and prevent marking as read
             }
+
+            // Mark as read to avoid the 1-minute trigger picking it up again
+            markThreadAsRead(thread.threadId);
         } catch (e: any) {
             console.error(`Error processing thread ${thread.threadId}: ${e.message}`);
             // Do NOT mark as read if it failed, so we can retry on the next tick
