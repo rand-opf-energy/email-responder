@@ -51,11 +51,14 @@ function processEmailsTick() {
             console.log(aiResponse);
 
             const bodyContent = thread.isEscalated ? aiResponse : `${aiResponse}\n\n${CONFIG.SIGNATURE}`;
+            const htmlBodyContent = bodyContent.replace(/\r?\n/g, "<br>");
 
             try {
                 const gmailThread = GmailApp.getThreadById(thread.threadId);
                 if (gmailThread) {
-                    const options: GoogleAppsScript.Gmail.GmailAdvancedOptions = {};
+                    const options: GoogleAppsScript.Gmail.GmailAdvancedOptions = {
+                        htmlBody: htmlBodyContent
+                    };
                     if (thread.isEscalated) {
                         options.bcc = CONFIG.ESCALATION_EMAIL;
                     }
