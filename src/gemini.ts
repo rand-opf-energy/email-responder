@@ -54,10 +54,33 @@ export function generateGeminiResponse(thread: ParsedThread, botEmailAddress: st
         };
     });
 
+    // Fetch the base system instructions from the primary config doc
+    let systemInstruction = "";
+    try {
+        const primaryDoc = DocumentApp.openById(CONFIG.SYSTEM_INSTRUCTION_DOC_ID);
+        systemInstruction = primaryDoc.getBody().getText();
+        console.log("Successfully fetched primary system instruction from document.");
+    } catch (e: any) {
+        console.error(`Failed to fetch primary system instruction doc ID ${CONFIG.SYSTEM_INSTRUCTION_DOC_ID}: ${e.message}`);
+        throw new Error("Cannot proceed without primary system instructions.");
+    }
+
+    // Fetch context from Google Docs
+    if (CONFIG.CONTEXT_DOC_IDS && CONFIG.CONTEXT_DOC_IDS.length > 0) {
+        systemInstruction += "\n\n--- REFERENCE DOCUMENTATION ---\n";
+        for (const docId of CONFIG.CONTEXT_DOC_IDS) {
+            const doc = DocumentApp.openById(docId);
+            const title = doc.getName();
+            const text = doc.getBody().getText();
+            systemInstruction += `\nDocument Title: ${title}\n${text}\n---\n`;
+            console.log(`Successfully fetched context from document: ${title}`);
+        }
+    }
+
     const payload: VertexPayload = {
         contents: contents,
         systemInstruction: {
-            parts: [{ text: CONFIG.SYSTEM_INSTRUCTION }]
+            parts: [{ text: systemInstruction }]
         },
         generationConfig: {
             temperature: 0.7,

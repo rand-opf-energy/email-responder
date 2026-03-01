@@ -22,17 +22,20 @@ export interface ParsedThread {
     subject: string;
     messages: ParsedEmail[];
     isEscalated?: boolean;
+    needsCannedResponse?: boolean;
 }
 
 /**
- * Fetches unread email threads sent to the specified address.
+ * Fetches unread email threads sent to the bot's inbox.
  * 
- * @param targetEmailAddress The email address the messages must have been sent to (e.g., 'reservations@sanmarinotennis.org')
+ * @param botEmailAddress The email address of the bot
  * @returns Array of ParsedThread objects containing the full conversation histories
  */
-export function getUnreadThreadsForAddress(targetEmailAddress: string, botEmailAddress: string): ParsedThread[] {
-    // We search for unread threads where the target address is in the "to" or "cc" fields.
-    const query = `is:unread (to:${targetEmailAddress} OR cc:${targetEmailAddress})`;
+export function getUnreadThreads(botEmailAddress: string): ParsedThread[] {
+    // We search for unread threads where any valid target address OR the bot address is in the "to" or "cc" fields.
+    const allTargets = [...CONFIG.VALID_TARGET_EMAILS, botEmailAddress];
+    const targetConditions = allTargets.map(email => `to:${email} OR cc:${email}`).join(' OR ');
+    const query = `is:unread (${targetConditions})`;
     console.log(`Searching Gmail for query: ${query}`);
 
     const threads = GmailApp.search(query);
@@ -100,11 +103,23 @@ export function getUnreadThreadsForAddress(targetEmailAddress: string, botEmailA
         // the max response count (or beyond it, e.g. if config changes).
         // Since isEscalated makes the main loop send the final message, we want to proceed.
 
+        let needsCannedResponse = false;
+        const combinedRecipients = (lastMessage.recipient + " " + (lastMessage.cc || "")).toLowerCase();
+        const sentToValidTarget = CONFIG.VALID_TARGET_EMAILS.some(validEmail =>
+            combinedRecipients.includes(validEmail.toLowerCase())
+        );
+
+        if (!sentToValidTarget) {
+            console.log(`Thread ID: ${threadId} does not include a valid target email. Flagging for canned response.`);
+            needsCannedResponse = true;
+        }
+
         parsedThreads.push({
             threadId,
             subject,
             messages: parsedMessages,
-            isEscalated
+            isEscalated,
+            needsCannedResponse
         });
     }
 
@@ -127,6 +142,16 @@ export function markThreadAsRead(threadId: string): void {
 }
 
 /**
+ * Extracts the raw email address from a formatted sender string.
+ * Example: "John Doe <john@example.com>" -> "john@example.com"
+ */
+export function extractEmailAddress(senderInfo: string): string {
+    const senderLower = senderInfo.toLowerCase();
+    const emailMatch = senderLower.match(/<([^>]+)>|([^<>\s]+@[^<>\s]+)/);
+    return emailMatch ? (emailMatch[1] || emailMatch[2] || senderLower) : senderLower;
+}
+
+/**
  * Checks if the thread should be ignored based on the last message sent.
  */
 function shouldIgnore(lastMessage: ParsedEmail, botEmailAddress: string, threadId: string): boolean {
@@ -139,9 +164,11 @@ function shouldIgnore(lastMessage: ParsedEmail, botEmailAddress: string, threadI
         return true;
     }
 
+    const senderEmail = extractEmailAddress(lastMessage.sender);
+
     let isAllowed = true;
     if (CONFIG.ALLOWED_SENDERS && CONFIG.ALLOWED_SENDERS.length > 0) {
-        isAllowed = CONFIG.ALLOWED_SENDERS.some(allowed => lastMessage.sender.toLowerCase().includes(allowed.toLowerCase()));
+        isAllowed = CONFIG.ALLOWED_SENDERS.some(allowed => senderEmail === allowed.toLowerCase());
     }
 
     if (!isAllowed) {
@@ -150,14 +177,10 @@ function shouldIgnore(lastMessage: ParsedEmail, botEmailAddress: string, threadI
     }
 
     // Check if the last sender is in the ignored senders list
-    const isIgnoredSender = CONFIG.IGNORED_SENDERS.some(ignored => lastMessage.sender.toLowerCase().includes(ignored.toLowerCase()));
+    const isIgnoredSender = CONFIG.IGNORED_SENDERS.some(ignored => senderEmail === ignored.toLowerCase());
 
     // Check if the last sender's domain is in the ignored domains list
-    const senderLower = lastMessage.sender.toLowerCase();
-    // Extract domain from sender, which could be formatted like "Name <email@domain.com>" or just "email@domain.com"
-    const emailMatch = senderLower.match(/<([^>]+)>|([^<>\s]+@[^<>\s]+)/);
-    const emailAddress = emailMatch ? (emailMatch[1] || emailMatch[2] || senderLower) : senderLower;
-    const senderDomain = emailAddress.split('@')[1] || "";
+    const senderDomain = senderEmail.split('@')[1] || "";
 
     const isIgnoredDomain = CONFIG.IGNORED_DOMAINS.some(domain => senderDomain === domain.toLowerCase());
 

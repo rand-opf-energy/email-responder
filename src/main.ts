@@ -1,8 +1,7 @@
-import { getUnreadThreadsForAddress, markThreadAsRead } from "./gmail";
+import { getUnreadThreads, markThreadAsRead } from "./gmail";
 import { generateGeminiResponse } from "./gemini";
 import { CONFIG } from "./config";
 
-const TARGET_EMAIL_ADDRESS = "reservations@sanmarinotennis.org";
 const BOT_EMAIL_ADDRESS = "skye@sanmarinotennis.org";
 
 /**
@@ -11,7 +10,7 @@ const BOT_EMAIL_ADDRESS = "skye@sanmarinotennis.org";
 function processEmailsTick() {
     console.log(`--- Email Tick Started at ${new Date().toISOString()} ---`);
 
-    const unreadThreads = getUnreadThreadsForAddress(TARGET_EMAIL_ADDRESS, BOT_EMAIL_ADDRESS);
+    const unreadThreads = getUnreadThreads(BOT_EMAIL_ADDRESS);
 
     if (unreadThreads.length === 0) {
         console.log("No new unread emails found.");
@@ -35,7 +34,10 @@ function processEmailsTick() {
         try {
             let aiResponse = "";
 
-            if (thread.isEscalated) {
+            if (thread.needsCannedResponse) {
+                console.log("Thread is a direct message. Skipping Vertex AI and sending canned response...");
+                aiResponse = CONFIG.CANNED_DIRECT_MESSAGE;
+            } else if (thread.isEscalated) {
                 console.log("Thread is flagged for escalation. Skipping Vertex AI...");
                 aiResponse = CONFIG.ESCALATION_MESSAGE;
             } else {

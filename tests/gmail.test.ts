@@ -1,8 +1,21 @@
-// @ts-nocheck - We need to disable checking here since GmailApp is globally injected
-import { getUnreadThreadsForAddress } from '../src/gmail';
+import { getUnreadThreads, extractEmailAddress } from '../src/gmail';
 import { CONFIG } from '../src/config';
 
 describe('gmail.ts unread thread fetching', () => {
+    describe('extractEmailAddress', () => {
+        it('should extract email from angle brackets', () => {
+            expect(extractEmailAddress('John Doe <john@example.com>')).toBe('john@example.com');
+        });
+
+        it('should return the email if no angle brackets are present', () => {
+            expect(extractEmailAddress('john@example.com')).toBe('john@example.com');
+        });
+
+        it('should convert email to lowercase', () => {
+            expect(extractEmailAddress('John Doe <JOHN@EXAMPLE.COM>')).toBe('john@example.com');
+        });
+    });
+
     let mockSearch: any;
     let originalAllowedSenders: string[] | undefined;
 
@@ -54,7 +67,7 @@ describe('gmail.ts unread thread fetching', () => {
             },
         ]);
 
-        const result = getUnreadThreadsForAddress('reservations@sanmarinotennis.org', 'skye@sanmarinotennis.org');
+        const result = getUnreadThreads('skye@sanmarinotennis.org');
 
         expect(mockSearch).toHaveBeenCalled();
         // The thread should be skipped entirely
@@ -92,7 +105,7 @@ describe('gmail.ts unread thread fetching', () => {
             },
         ]);
 
-        const result = getUnreadThreadsForAddress('reservations@sanmarinotennis.org', 'skye@sanmarinotennis.org');
+        const result = getUnreadThreads('skye@sanmarinotennis.org');
 
         expect(mockSearch).toHaveBeenCalled();
         // The thread should be parsed and returned
@@ -127,7 +140,7 @@ describe('gmail.ts unread thread fetching', () => {
             },
         ]);
 
-        const result = getUnreadThreadsForAddress('reservations@sanmarinotennis.org', 'skye@sanmarinotennis.org');
+        const result = getUnreadThreads('skye@sanmarinotennis.org');
 
         expect(mockSearch).toHaveBeenCalled();
         // Since we removed the "exceeds MAX_BOT_RESPONSES, simply STOP responding" 
@@ -162,7 +175,7 @@ describe('gmail.ts unread thread fetching', () => {
             },
         ]);
 
-        const result = getUnreadThreadsForAddress('reservations@sanmarinotennis.org', 'skye@sanmarinotennis.org');
+        const result = getUnreadThreads('skye@sanmarinotennis.org');
 
         expect(mockSearch).toHaveBeenCalled();
         expect(result.length).toBe(1);
@@ -191,7 +204,7 @@ describe('gmail.ts unread thread fetching', () => {
 
         mockSearch.mockReturnValue([mockThread]);
 
-        const result = getUnreadThreadsForAddress('reservations@sanmarinotennis.org', 'skye@sanmarinotennis.org');
+        const result = getUnreadThreads('skye@sanmarinotennis.org');
 
         expect(result.length).toBe(0);
         expect(mockThread.markRead).toHaveBeenCalled();
@@ -218,7 +231,7 @@ describe('gmail.ts unread thread fetching', () => {
 
         mockSearch.mockReturnValue([mockThread]);
 
-        const result = getUnreadThreadsForAddress('reservations@sanmarinotennis.org', 'skye@sanmarinotennis.org');
+        const result = getUnreadThreads('skye@sanmarinotennis.org');
 
         expect(result.length).toBe(0);
         expect(mockThread.markRead).toHaveBeenCalled();
@@ -246,7 +259,35 @@ describe('gmail.ts unread thread fetching', () => {
 
         mockSearch.mockReturnValue([mockThread]);
 
-        const result = getUnreadThreadsForAddress('reservations@sanmarinotennis.org', 'skye@sanmarinotennis.org');
+        const result = getUnreadThreads('skye@sanmarinotennis.org');
+
+        expect(result.length).toBe(0);
+        expect(mockThread.markRead).toHaveBeenCalled();
+    });
+
+    it('should NOT process threads from senders that are substrings of allowed senders', () => {
+        CONFIG.ALLOWED_SENDERS = ['user@example.com'];
+        const mockThread = {
+            getId: () => 'thread_substring',
+            getFirstMessageSubject: () => 'Substring Test',
+            getMessages: () => [
+                {
+                    getId: () => 'msg_1',
+                    getFrom: () => 'test_user@example.com', // Contains 'user@example.com' but is not exactly equal
+                    getTo: () => 'reservations@sanmarinotennis.org',
+                    getSubject: () => 'Substring Test',
+                    getDate: () => new Date(),
+                    getPlainBody: () => 'Testing substring match',
+                    getBody: () => 'Testing substring match',
+                    getHeader: (name: string) => name === 'Message-ID' ? 'mock-id' : null,
+                }
+            ],
+            markRead: jest.fn(),
+        };
+
+        mockSearch.mockReturnValue([mockThread]);
+
+        const result = getUnreadThreads('skye@sanmarinotennis.org');
 
         expect(result.length).toBe(0);
         expect(mockThread.markRead).toHaveBeenCalled();
@@ -285,7 +326,7 @@ describe('gmail.ts unread thread fetching', () => {
 
         mockSearch.mockReturnValue([mockThread]);
 
-        const result = getUnreadThreadsForAddress('reservations@sanmarinotennis.org', 'skye@sanmarinotennis.org');
+        const result = getUnreadThreads('skye@sanmarinotennis.org');
 
         expect(result.length).toBe(0);
         expect(mockThread.markRead).toHaveBeenCalled();
@@ -324,9 +365,67 @@ describe('gmail.ts unread thread fetching', () => {
 
         mockSearch.mockReturnValue([mockThread]);
 
-        const result = getUnreadThreadsForAddress('reservations@sanmarinotennis.org', 'skye@sanmarinotennis.org');
+        const result = getUnreadThreads('skye@sanmarinotennis.org');
 
         expect(result.length).toBe(1);
         expect(mockThread.markRead).not.toHaveBeenCalled();
+    });
+
+    it('should flag threads sent directly to the bot with needsCannedResponse = true', () => {
+        CONFIG.ALLOWED_SENDERS = ['user@example.com'];
+        CONFIG.VALID_TARGET_EMAILS = ['reservations@sanmarinotennis.org'];
+        const mockThread = {
+            getId: () => 'thread_direct',
+            getFirstMessageSubject: () => 'Hello Bot',
+            getMessages: () => [
+                {
+                    getId: () => 'msg_1',
+                    getFrom: () => 'user@example.com',
+                    getTo: () => 'skye@sanmarinotennis.org',
+                    getSubject: () => 'Hello Bot',
+                    getDate: () => new Date(),
+                    getPlainBody: () => 'Hello there',
+                    getBody: () => 'Hello there',
+                    getHeader: (name: string) => name === 'Message-ID' ? 'mock-id' : null,
+                }
+            ],
+            markRead: jest.fn(),
+        };
+
+        mockSearch.mockReturnValue([mockThread]);
+
+        const result = getUnreadThreads('skye@sanmarinotennis.org');
+
+        expect(result.length).toBe(1);
+        expect(result[0].needsCannedResponse).toBe(true);
+    });
+
+    it('should NOT flag threads sent to a valid target email even if the bot is CCd', () => {
+        CONFIG.ALLOWED_SENDERS = ['user@example.com'];
+        CONFIG.VALID_TARGET_EMAILS = ['reservations@sanmarinotennis.org'];
+        const mockThread = {
+            getId: () => 'thread_valid',
+            getFirstMessageSubject: () => 'Help with court',
+            getMessages: () => [
+                {
+                    getId: () => 'msg_1',
+                    getFrom: () => 'user@example.com',
+                    getTo: () => 'reservations@sanmarinotennis.org, skye@sanmarinotennis.org',
+                    getSubject: () => 'Help with court',
+                    getDate: () => new Date(),
+                    getPlainBody: () => 'Please help',
+                    getBody: () => 'Please help',
+                    getHeader: (name: string) => name === 'Message-ID' ? 'mock-id' : null,
+                }
+            ],
+            markRead: jest.fn(),
+        };
+
+        mockSearch.mockReturnValue([mockThread]);
+
+        const result = getUnreadThreads('skye@sanmarinotennis.org');
+
+        expect(result.length).toBe(1);
+        expect(result[0].needsCannedResponse).toBe(false);
     });
 });
