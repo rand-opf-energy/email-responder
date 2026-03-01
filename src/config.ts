@@ -38,7 +38,8 @@ export const CONFIG = {
     // List of domains that the bot should completely ignore and never reply to
     IGNORED_DOMAINS: [
         "sanmarinotennis.org",
-        "courtreserve.com"
+        "courtreserve.com",
+        "safesavepayments.com"
     ],
 
     // The signature/disclaimer to append to the end of every AI-generated email
