@@ -87,7 +87,7 @@ describe('gemini.ts response generation', () => {
             throw new Error('Not found');
         });
 
-        generateGeminiResponse(mockThread, 'skye@sanmarinotennis.org');
+        generateGeminiResponse(mockThread);
 
         expect(mockDocumentApp).toHaveBeenCalledTimes(3);
 
@@ -126,7 +126,7 @@ describe('gemini.ts response generation', () => {
         });
 
         expect(() => {
-            generateGeminiResponse(mockThread, 'skye@sanmarinotennis.org');
+            generateGeminiResponse(mockThread);
         }).toThrow('Permission denied');
 
         // Assert that the API was never actually called because we failed early
@@ -146,7 +146,7 @@ describe('gemini.ts response generation', () => {
             }
         });
 
-        generateGeminiResponse(mockThread, 'skye@sanmarinotennis.org');
+        generateGeminiResponse(mockThread);
 
         expect(mockDocumentApp).toHaveBeenCalledTimes(1);
 

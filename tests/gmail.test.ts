@@ -1,4 +1,4 @@
-import { getUnreadThreads, extractEmailAddress } from '../src/gmail';
+import { getThreads, extractEmailAddress } from '../src/gmail';
 import { CONFIG } from '../src/config';
 
 describe('gmail.ts unread thread fetching', () => {
@@ -17,23 +17,11 @@ describe('gmail.ts unread thread fetching', () => {
     });
 
     let mockSearch: any;
-    let originalAllowedSenders: string[] | undefined;
 
     beforeEach(() => {
         // Reset the global mock before each test
         mockSearch = jest.spyOn(global.GmailApp, 'search');
         mockSearch.mockClear();
-        originalAllowedSenders = CONFIG.ALLOWED_SENDERS ? [...CONFIG.ALLOWED_SENDERS] : undefined;
-        CONFIG.ALLOWED_SENDERS = ['user@example.com'];
-    });
-
-    afterEach(() => {
-        if (originalAllowedSenders !== undefined) {
-            CONFIG.ALLOWED_SENDERS = originalAllowedSenders;
-        } else {
-            // Revert it
-            CONFIG.ALLOWED_SENDERS = [];
-        }
     });
 
     it('should ignore threads where the bot was the last sender (infinite loop guard)', () => {
@@ -67,7 +55,7 @@ describe('gmail.ts unread thread fetching', () => {
             },
         ]);
 
-        const result = getUnreadThreads('skye@sanmarinotennis.org');
+        const result = getThreads();
 
         expect(mockSearch).toHaveBeenCalled();
         // The thread should be skipped entirely
@@ -105,7 +93,7 @@ describe('gmail.ts unread thread fetching', () => {
             },
         ]);
 
-        const result = getUnreadThreads('skye@sanmarinotennis.org');
+        const result = getThreads();
 
         expect(mockSearch).toHaveBeenCalled();
         // The thread should be parsed and returned
@@ -140,7 +128,7 @@ describe('gmail.ts unread thread fetching', () => {
             },
         ]);
 
-        const result = getUnreadThreads('skye@sanmarinotennis.org');
+        const result = getThreads();
 
         expect(mockSearch).toHaveBeenCalled();
         // Since we removed the "exceeds MAX_BOT_RESPONSES, simply STOP responding" 
@@ -175,7 +163,7 @@ describe('gmail.ts unread thread fetching', () => {
             },
         ]);
 
-        const result = getUnreadThreads('skye@sanmarinotennis.org');
+        const result = getThreads();
 
         expect(mockSearch).toHaveBeenCalled();
         expect(result.length).toBe(1);
@@ -204,7 +192,7 @@ describe('gmail.ts unread thread fetching', () => {
 
         mockSearch.mockReturnValue([mockThread]);
 
-        const result = getUnreadThreads('skye@sanmarinotennis.org');
+        const result = getThreads();
 
         expect(result.length).toBe(0);
         expect(mockThread.markRead).toHaveBeenCalled();
@@ -231,70 +219,15 @@ describe('gmail.ts unread thread fetching', () => {
 
         mockSearch.mockReturnValue([mockThread]);
 
-        const result = getUnreadThreads('skye@sanmarinotennis.org');
+        const result = getThreads();
 
         expect(result.length).toBe(0);
         expect(mockThread.markRead).toHaveBeenCalled();
     });
 
-    it('should skip and mark read threads from not allowed senders', () => {
-        CONFIG.ALLOWED_SENDERS = ['someotheruser@example.com'];
-        const mockThread = {
-            getId: () => 'thread_not_allowed',
-            getFirstMessageSubject: () => 'Not Allowed',
-            getMessages: () => [
-                {
-                    getId: () => 'msg_1',
-                    getFrom: () => 'user@example.com',
-                    getTo: () => 'reservations@sanmarinotennis.org',
-                    getSubject: () => 'Not Allowed',
-                    getDate: () => new Date(),
-                    getPlainBody: () => 'Hello',
-                    getBody: () => 'Hello',
-                    getHeader: (name: string) => name === 'Message-ID' ? 'mock-id' : null,
-                }
-            ],
-            markRead: jest.fn(),
-        };
-
-        mockSearch.mockReturnValue([mockThread]);
-
-        const result = getUnreadThreads('skye@sanmarinotennis.org');
-
-        expect(result.length).toBe(0);
-        expect(mockThread.markRead).toHaveBeenCalled();
-    });
-
-    it('should NOT process threads from senders that are substrings of allowed senders', () => {
-        CONFIG.ALLOWED_SENDERS = ['user@example.com'];
-        const mockThread = {
-            getId: () => 'thread_substring',
-            getFirstMessageSubject: () => 'Substring Test',
-            getMessages: () => [
-                {
-                    getId: () => 'msg_1',
-                    getFrom: () => 'test_user@example.com', // Contains 'user@example.com' but is not exactly equal
-                    getTo: () => 'reservations@sanmarinotennis.org',
-                    getSubject: () => 'Substring Test',
-                    getDate: () => new Date(),
-                    getPlainBody: () => 'Testing substring match',
-                    getBody: () => 'Testing substring match',
-                    getHeader: (name: string) => name === 'Message-ID' ? 'mock-id' : null,
-                }
-            ],
-            markRead: jest.fn(),
-        };
-
-        mockSearch.mockReturnValue([mockThread]);
-
-        const result = getUnreadThreads('skye@sanmarinotennis.org');
-
-        expect(result.length).toBe(0);
-        expect(mockThread.markRead).toHaveBeenCalled();
-    });
 
     it('should skip and mark read threads if the last message involves the escalation email', () => {
-        CONFIG.ALLOWED_SENDERS = ['user@example.com'];
+        // removed allowlist
         CONFIG.ESCALATION_EMAIL = 'reservations+escalated@sanmarinotennis.org';
         const mockThread = {
             getId: () => 'thread_escalated',
@@ -326,14 +259,14 @@ describe('gmail.ts unread thread fetching', () => {
 
         mockSearch.mockReturnValue([mockThread]);
 
-        const result = getUnreadThreads('skye@sanmarinotennis.org');
+        const result = getThreads();
 
         expect(result.length).toBe(0);
         expect(mockThread.markRead).toHaveBeenCalled();
     });
 
     it('should NOT skip threads if an earlier message involved the escalation email but the latest does not', () => {
-        CONFIG.ALLOWED_SENDERS = ['user@example.com'];
+        // removed allowlist
         CONFIG.ESCALATION_EMAIL = 'reservations+escalated@sanmarinotennis.org';
         const mockThread = {
             getId: () => 'thread_escalate_removed',
@@ -365,14 +298,14 @@ describe('gmail.ts unread thread fetching', () => {
 
         mockSearch.mockReturnValue([mockThread]);
 
-        const result = getUnreadThreads('skye@sanmarinotennis.org');
+        const result = getThreads();
 
         expect(result.length).toBe(1);
         expect(mockThread.markRead).not.toHaveBeenCalled();
     });
 
     it('should flag threads sent directly to the bot with needsCannedResponse = true', () => {
-        CONFIG.ALLOWED_SENDERS = ['user@example.com'];
+        // removed allowlist
         CONFIG.VALID_TARGET_EMAILS = ['reservations@sanmarinotennis.org'];
         const mockThread = {
             getId: () => 'thread_direct',
@@ -394,14 +327,14 @@ describe('gmail.ts unread thread fetching', () => {
 
         mockSearch.mockReturnValue([mockThread]);
 
-        const result = getUnreadThreads('skye@sanmarinotennis.org');
+        const result = getThreads();
 
         expect(result.length).toBe(1);
         expect(result[0].needsCannedResponse).toBe(true);
     });
 
     it('should NOT flag threads sent to a valid target email even if the bot is CCd', () => {
-        CONFIG.ALLOWED_SENDERS = ['user@example.com'];
+        // removed allowlist
         CONFIG.VALID_TARGET_EMAILS = ['reservations@sanmarinotennis.org'];
         const mockThread = {
             getId: () => 'thread_valid',
@@ -423,9 +356,84 @@ describe('gmail.ts unread thread fetching', () => {
 
         mockSearch.mockReturnValue([mockThread]);
 
-        const result = getUnreadThreads('skye@sanmarinotennis.org');
+        const result = getThreads();
 
         expect(result.length).toBe(1);
         expect(result[0].needsCannedResponse).toBe(false);
+    });
+    it('should ignore threads where a staff member (@sanmarinotennis.org) has replied', () => {
+        // removed allowlist
+        const mockThread = {
+            getId: () => 'thread_staff',
+            getFirstMessageSubject: () => 'Information',
+            getMessages: () => [
+                {
+                    getId: () => 'msg_1',
+                    getFrom: () => 'user@example.com',
+                    getTo: () => 'reservations@sanmarinotennis.org',
+                    getSubject: () => 'Information',
+                    getDate: () => new Date(),
+                    getPlainBody: () => 'Question',
+                    getBody: () => 'Question',
+                    getHeader: (name: string) => name === 'Message-ID' ? 'mock-id' : null,
+                },
+                {
+                    getId: () => 'msg_2',
+                    getFrom: () => 'rand@sanmarinotennis.org', // Staff replied
+                    getTo: () => 'user@example.com',
+                    getSubject: () => 'Re: Information',
+                    getDate: () => new Date(),
+                    getPlainBody: () => 'Answer',
+                    getBody: () => 'Answer',
+                    getHeader: (name: string) => name === 'Message-ID' ? 'mock-id' : null,
+                }
+            ],
+            markRead: jest.fn(),
+        };
+
+        mockSearch.mockReturnValue([mockThread]);
+
+        const result = getThreads();
+
+        expect(result.length).toBe(0);
+        expect(mockThread.markRead).toHaveBeenCalled();
+    });
+
+    it('should NOT ignore threads if the bot is the only @sanmarinotennis.org address that replied', () => {
+        // removed allowlist
+        const mockThread = {
+            getId: () => 'thread_bot',
+            getFirstMessageSubject: () => 'Information',
+            getMessages: () => [
+                {
+                    getId: () => 'msg_1',
+                    getFrom: () => 'skye@sanmarinotennis.org', // Bot replied
+                    getTo: () => 'user@example.com',
+                    getSubject: () => 'Re: Information',
+                    getDate: () => new Date(),
+                    getPlainBody: () => 'Wait a moment',
+                    getBody: () => 'Wait a moment',
+                    getHeader: (name: string) => name === 'Message-ID' ? 'mock-id' : null,
+                },
+                {
+                    getId: () => 'msg_2',
+                    getFrom: () => 'user@example.com',
+                    getTo: () => 'reservations@sanmarinotennis.org',
+                    getSubject: () => 'Re: Information',
+                    getDate: () => new Date(),
+                    getPlainBody: () => 'Ok',
+                    getBody: () => 'Ok',
+                    getHeader: (name: string) => name === 'Message-ID' ? 'mock-id' : null,
+                }
+            ],
+            markRead: jest.fn(),
+        };
+
+        mockSearch.mockReturnValue([mockThread]);
+
+        const result = getThreads();
+
+        expect(result.length).toBe(1);
+        expect(mockThread.markRead).not.toHaveBeenCalled();
     });
 });

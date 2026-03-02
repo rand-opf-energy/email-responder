@@ -31,10 +31,6 @@ export const CONFIG = {
     // List of email addresses that the bot should completely ignore and never reply to
     IGNORED_SENDERS: [] as string[],
 
-    // List of email addresses that the bot is allowed to reply to. 
-    // If this list is not empty, the bot will only reply to these addresses.
-    ALLOWED_SENDERS: [] as string[],
-
     // List of domains that the bot should completely ignore and never reply to
     IGNORED_DOMAINS: [
         "sanmarinotennis.org",

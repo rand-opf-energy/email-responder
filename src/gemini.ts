@@ -2,6 +2,7 @@ import { CONFIG } from "./config";
 import { ParsedThread } from "./gmail";
 
 // Interfaces for Vertex AI REST API payloads
+// Vertex requires a strict schema for the conversation history where roles are distinct.
 interface VertexContent {
     role: "user" | "model";
     parts: { text: string }[];
@@ -22,23 +23,27 @@ interface VertexPayload {
  * Calls the Vertex AI Gemini REST API to generate a response for an email thread.
  * 
  * @param thread The parsed email conversation history
- * @param botEmailAddress The email address of the bot to determine which messages were 'model' vs 'user'
+ * @param thread The parsed email conversation history
  * @returns The generated response string from Gemini
  */
-export function generateGeminiResponse(thread: ParsedThread, botEmailAddress: string): string {
+export function generateGeminiResponse(thread: ParsedThread): string {
+    const botEmailAddress = Session.getEffectiveUser().getEmail();
     // Construct the conversation history for the Vertex API
     const contents: VertexContent[] = thread.messages.map((msg) => {
         const isBot = msg.sender.includes(botEmailAddress);
         let textForModel = msg.body;
 
         if (isBot) {
-            // Strip the signature so the model doesn't learn to generate it
+            // Strip the signature so the model doesn't learn to generate it in its raw responses.
+            // We want the signature appended exclusively in main.ts, not by the model itself.
             const signatureIndex = textForModel.indexOf(`\n\n${CONFIG.SIGNATURE}`);
             if (signatureIndex !== -1) {
                 textForModel = textForModel.substring(0, signatureIndex);
             }
 
-            // Strip the appended quoted history starting with "\n\nOn "
+            // Strip the appended quoted history starting with "\n\nOn " to save context window.
+            // Gmail automatically appends earlier messages in the thread, but we are already
+            // feeding the full parsed thread history into the model via `contents`.
             const quoteIndex = textForModel.lastIndexOf("\n\nOn ");
             if (quoteIndex !== -1) {
                 textForModel = textForModel.substring(0, quoteIndex);

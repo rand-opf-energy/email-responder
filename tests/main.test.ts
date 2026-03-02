@@ -4,7 +4,7 @@ import * as gemini from "../src/gemini";
 import "../src/main";
 
 describe("main.ts processEmailsTick", () => {
-    let mockGetUnreadThreads: jest.SpyInstance;
+    let mockGetThreads: jest.SpyInstance;
     let mockGenerateGeminiResponse: jest.SpyInstance;
     let mockMarkThreadAsRead: jest.SpyInstance;
     let mockReplyAll: jest.Mock;
@@ -12,7 +12,7 @@ describe("main.ts processEmailsTick", () => {
 
     beforeEach(() => {
         // Setup mocks
-        mockGetUnreadThreads = jest.spyOn(gmail, "getUnreadThreads");
+        mockGetThreads = jest.spyOn(gmail, "getThreads");
         mockGenerateGeminiResponse = jest.spyOn(gemini, "generateGeminiResponse");
         mockMarkThreadAsRead = jest.spyOn(gmail, "markThreadAsRead");
         mockReplyAll = jest.fn();
@@ -26,8 +26,8 @@ describe("main.ts processEmailsTick", () => {
         });
 
         // Suppress console.log for clean test output
-        jest.spyOn(console, "log").mockImplementation(() => {});
-        jest.spyOn(console, "error").mockImplementation(() => {});
+        jest.spyOn(console, "log").mockImplementation(() => { });
+        jest.spyOn(console, "error").mockImplementation(() => { });
     });
 
     afterEach(() => {
@@ -39,7 +39,7 @@ describe("main.ts processEmailsTick", () => {
         const expectedBody = `${fakeAiResponse}\n\n${CONFIG.SIGNATURE}`;
         const expectedHtmlBody = expectedBody.replace(/\r?\n/g, "<br>");
 
-        mockGetUnreadThreads.mockReturnValue([
+        mockGetThreads.mockReturnValue([
             {
                 threadId: "thread_test",
                 subject: "Test Subject",
@@ -65,7 +65,7 @@ describe("main.ts processEmailsTick", () => {
         const fakeEscalationResponse = CONFIG.ESCALATION_MESSAGE;
         const expectedHtmlBody = fakeEscalationResponse.replace(/\r?\n/g, "<br>");
 
-        mockGetUnreadThreads.mockReturnValue([
+        mockGetThreads.mockReturnValue([
             {
                 threadId: "thread_escalated_test",
                 subject: "Test Escalation",

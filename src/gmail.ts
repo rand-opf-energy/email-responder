@@ -26,12 +26,20 @@ export interface ParsedThread {
 }
 
 /**
- * Fetches unread email threads sent to the bot's inbox.
+ * Fetches and filters unread threads that the bot should process.
  * 
- * @param botEmailAddress The email address of the bot
  * @returns Array of ParsedThread objects containing the full conversation histories
  */
-export function getUnreadThreads(botEmailAddress: string): ParsedThread[] {
+export function getThreads(): ParsedThread[] {
+    const unreadThreads = getUnreadThreads();
+    return filterThreads(unreadThreads);
+}
+
+/**
+ * Searches Gmail for unread threads that might be relevant to the bot.
+ */
+export function getUnreadThreads(): GoogleAppsScript.Gmail.GmailThread[] {
+    const botEmailAddress = Session.getEffectiveUser().getEmail();
     // We search for unread threads where any valid target address OR the bot address is in the "to" or "cc" fields.
     const allTargets = [...CONFIG.VALID_TARGET_EMAILS, botEmailAddress];
     const targetConditions = allTargets.map(email => `to:${email} OR cc:${email}`).join(' OR ');
@@ -40,7 +48,14 @@ export function getUnreadThreads(botEmailAddress: string): ParsedThread[] {
 
     const threads = GmailApp.search(query);
     console.log(`Found ${threads.length} matching unread threads.`);
+    return threads;
+}
 
+/**
+ * Filters and parses the raw threads, applying ignore rules and checking for escalation or canned responses.
+ */
+export function filterThreads(threads: GoogleAppsScript.Gmail.GmailThread[]): ParsedThread[] {
+    const botEmailAddress = Session.getEffectiveUser().getEmail();
     const parsedThreads: ParsedThread[] = [];
 
     for (const thread of threads) {
@@ -50,24 +65,7 @@ export function getUnreadThreads(botEmailAddress: string): ParsedThread[] {
 
         console.log(`Processing Thread ID: ${threadId} | Subject: "${subject}" | Messages: ${messages.length}`);
 
-        const parsedMessages: ParsedEmail[] = messages.map((msg) => {
-            // Prefer plain text body for AI processing
-            let body = msg.getPlainBody();
-            if (!body) {
-                body = msg.getBody(); // fallback to HTML if no plain text
-            }
-
-            return {
-                id: msg.getId(),
-                sender: msg.getFrom(),
-                recipient: msg.getTo(),
-                cc: typeof msg.getCc === 'function' ? msg.getCc() : "",
-                subject: msg.getSubject(),
-                date: msg.getDate(),
-                body: body,
-                messageIdHeader: msg.getHeader("Message-ID"),
-            };
-        });
+        const parsedMessages: ParsedEmail[] = parseGmailMessages(messages);
 
         // Add a max response count for the bot itself.
         // If it reaches MAX_BOT_RESPONSES, we flag it for escalation (to send the final message).
@@ -78,21 +76,16 @@ export function getUnreadThreads(botEmailAddress: string): ParsedThread[] {
             }
         }
 
+
         let isEscalated = false;
         if (botMessageCount >= CONFIG.MAX_BOT_RESPONSES) {
             console.log(`Thread ID: ${threadId} reached or exceeded ${CONFIG.MAX_BOT_RESPONSES} bot responses. Flagging for escalation.`);
             isEscalated = true;
         }
 
-        // Check if the last message in the thread was sent by us to prevent infinite loops
         const lastMessage = parsedMessages[parsedMessages.length - 1];
-        if (lastMessage.sender.includes(botEmailAddress)) {
-            console.log(`Skipping Thread ID: ${threadId} because we were the last sender.`);
-            thread.markRead(); // Mark as read since the inbox is solely for the bot
-            continue;
-        }
 
-        if (shouldIgnore(lastMessage, botEmailAddress, threadId)) {
+        if (shouldIgnore(botEmailAddress, threadId, parsedMessages)) {
             thread.markRead();
             continue;
         }
@@ -152,9 +145,56 @@ export function extractEmailAddress(senderInfo: string): string {
 }
 
 /**
- * Checks if the thread should be ignored based on the last message sent.
+ * Parses raw Google Apps Script Gmail Messages into a standardized format for the AI.
+ * Falls back to extracting HTML content if plain text is not available.
+ * 
+ * @param messages The raw messages retrieved from a Gmail thread
+ * @returns Array of structured ParsedEmail objects
  */
-function shouldIgnore(lastMessage: ParsedEmail, botEmailAddress: string, threadId: string): boolean {
+export function parseGmailMessages(messages: GoogleAppsScript.Gmail.GmailMessage[]): ParsedEmail[] {
+    return messages.map((msg) => {
+        // Prefer plain text body for AI processing as it contains less token-heavy markup
+        let body = msg.getPlainBody();
+        if (!body) {
+            body = msg.getBody(); // fallback to HTML if no plain text available
+        }
+
+        return {
+            id: msg.getId(),
+            sender: msg.getFrom(),
+            recipient: msg.getTo(),
+            cc: typeof msg.getCc === 'function' ? msg.getCc() : "",
+            subject: msg.getSubject(),
+            date: msg.getDate(),
+            body: body,
+            messageIdHeader: msg.getHeader("Message-ID"),
+        };
+    });
+}
+
+/**
+ * Checks if a given thread should be skipped based on its properties and last message.
+ * Rules are evaluated in precedence order:
+ * 1. Has the bot already been the last sender? (prevent infinite loops)
+ * 2. Does the last message involve the escalation address?
+ * 3. Have any non-bot staff members responded?
+ * 4. Is the sender on the explicit ignored senders/domains denylist?
+ * 
+ * @param botEmailAddress The bot's own email address
+ * @param threadId The thread's unique ID for logging
+ * @param parsedMessages All messages in the thread history
+ * @returns true if the email responder should not process this thread
+ */
+function shouldIgnore(botEmailAddress: string, threadId: string, parsedMessages: ParsedEmail[]): boolean {
+    const lastMessage = parsedMessages[parsedMessages.length - 1];
+
+    // 1. Check if the last message in the thread was sent by us to prevent infinite loops
+    if (lastMessage.sender.includes(botEmailAddress)) {
+        console.log(`Skipping Thread ID: ${threadId} because we were the last sender.`);
+        return true;
+    }
+
+    // 2. Do not process if the last message involves the escalation email address
     const involvesEscalationEmail =
         lastMessage.recipient.toLowerCase().includes(CONFIG.ESCALATION_EMAIL.toLowerCase()) ||
         (lastMessage.cc && lastMessage.cc.toLowerCase().includes(CONFIG.ESCALATION_EMAIL.toLowerCase()));
@@ -164,19 +204,21 @@ function shouldIgnore(lastMessage: ParsedEmail, botEmailAddress: string, threadI
         return true;
     }
 
-    const senderEmail = extractEmailAddress(lastMessage.sender);
+    // 3. Check if any staff member (@sanmarinotennis.org) has responded in the thread.
+    // We exclude the bot's own email address to allow the bot to respond.
+    const staffResponded = parsedMessages.some(msg => {
+        const email = extractEmailAddress(msg.sender);
+        return email.endsWith('@sanmarinotennis.org') && email !== botEmailAddress.toLowerCase();
+    });
 
-    let isAllowed = true;
-    if (CONFIG.ALLOWED_SENDERS && CONFIG.ALLOWED_SENDERS.length > 0) {
-        isAllowed = CONFIG.ALLOWED_SENDERS.some(allowed => senderEmail === allowed.toLowerCase());
-    }
-
-    if (!isAllowed) {
-        console.log(`Skipping Thread ID: ${threadId} because the sender (${lastMessage.sender}) is not on the ALLOWED_SENDERS list.`);
+    if (staffResponded) {
+        console.log(`Skipping Thread ID: ${threadId} because a staff member (@sanmarinotennis.org) has already responded.`);
         return true;
     }
 
-    // Check if the last sender is in the ignored senders list
+    const senderEmail = extractEmailAddress(lastMessage.sender);
+
+    // 4. Check if the sender is on the ignored senders or ignored domains denylists
     const isIgnoredSender = CONFIG.IGNORED_SENDERS.some(ignored => senderEmail === ignored.toLowerCase());
 
     // Check if the last sender's domain is in the ignored domains list

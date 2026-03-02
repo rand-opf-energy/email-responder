@@ -1,16 +1,14 @@
-import { getUnreadThreads, markThreadAsRead } from "./gmail";
+import { getThreads, markThreadAsRead } from "./gmail";
 import { generateGeminiResponse } from "./gemini";
 import { CONFIG } from "./config";
-
-const BOT_EMAIL_ADDRESS = "skye@sanmarinotennis.org";
-
 /**
  * Global entry point executed every minute by the time-driven trigger.
+ * This reads unread threads, routes them to Vertex AI, and replies to them.
  */
 function processEmailsTick() {
     console.log(`--- Email Tick Started at ${new Date().toISOString()} ---`);
 
-    const unreadThreads = getUnreadThreads(BOT_EMAIL_ADDRESS);
+    const unreadThreads = getThreads();
 
     if (unreadThreads.length === 0) {
         console.log("No new unread emails found.");
@@ -42,7 +40,7 @@ function processEmailsTick() {
                 aiResponse = CONFIG.ESCALATION_MESSAGE;
             } else {
                 console.log("Generating response from Vertex AI...");
-                aiResponse = generateGeminiResponse(thread, BOT_EMAIL_ADDRESS);
+                aiResponse = generateGeminiResponse(thread);
             }
 
             console.log(`\n================================`);
@@ -70,7 +68,10 @@ function processEmailsTick() {
                 }
             } catch (innerErr: any) {
                 console.error("Failed to send reply:", innerErr);
-                throw innerErr; // Re-throw to be caught by the outer catch and prevent marking as read
+                // Re-throw to be caught by the outer catch.
+                // This prevents marking the thread as read if the reply failed, 
+                // allowing it to be retried on the next tick.
+                throw innerErr;
             }
 
             // Mark as read to avoid the 1-minute trigger picking it up again

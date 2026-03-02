@@ -11,5 +11,11 @@
     newTrigger: jest.fn(),
 };
 
+(global as any).Session = {
+    getEffectiveUser: () => ({
+        getEmail: () => 'skye@sanmarinotennis.org'
+    })
+};
+
 // Required making setup.ts a module
 export { };
