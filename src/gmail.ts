@@ -78,7 +78,7 @@ export function filterThreads(threads: GoogleAppsScript.Gmail.GmailThread[]): Pa
 
 
         let isEscalated = false;
-        if (botMessageCount >= CONFIG.MAX_BOT_RESPONSES) {
+        if (CONFIG.ENABLE_ESCALATIONS && botMessageCount >= CONFIG.MAX_BOT_RESPONSES) {
             console.log(`Thread ID: ${threadId} reached or exceeded ${CONFIG.MAX_BOT_RESPONSES} bot responses. Flagging for escalation.`);
             isEscalated = true;
         }
@@ -196,7 +196,7 @@ function shouldIgnore(botEmailAddress: string, threadId: string, parsedMessages:
 
     // 2. Do not process if the last message involves the escalation email address
     let involvesEscalationEmail = false;
-    if (CONFIG.ESCALATION_EMAIL) {
+    if (CONFIG.ENABLE_ESCALATIONS && CONFIG.ESCALATION_EMAIL) {
         involvesEscalationEmail = Boolean(
             lastMessage.recipient.toLowerCase().includes(CONFIG.ESCALATION_EMAIL.toLowerCase()) ||
             (lastMessage.cc && lastMessage.cc.toLowerCase().includes(CONFIG.ESCALATION_EMAIL.toLowerCase()))

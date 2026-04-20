@@ -104,6 +104,7 @@ describe('gmail.ts unread thread fetching', () => {
     });
 
     it('should skip but not flag threads where the bot has replied >10 times', () => {
+        CONFIG.ENABLE_ESCALATIONS = true;
         // Generate 11 bot replies and 12 user messages
         const mockMessages = Array.from({ length: 23 }, (_, i) => ({
             getId: () => `msg_${i}`,
@@ -139,6 +140,7 @@ describe('gmail.ts unread thread fetching', () => {
     });
 
     it('should return and flag threads where the bot has replied exactly 10 times', () => {
+        CONFIG.ENABLE_ESCALATIONS = true;
         // Generate 10 bot replies and 11 user messages
         const mockMessages = Array.from({ length: 21 }, (_, i) => ({
             getId: () => `msg_${i}`,
@@ -230,6 +232,7 @@ describe('gmail.ts unread thread fetching', () => {
 
     it('should skip and mark read threads if the last message involves the escalation email', () => {
         // removed allowlist
+        CONFIG.ENABLE_ESCALATIONS = true;
         CONFIG.ESCALATION_EMAIL = 'reservations+escalated@opf.energy';
         const mockThread = {
             getId: () => 'thread_escalated',
@@ -269,6 +272,7 @@ describe('gmail.ts unread thread fetching', () => {
 
     it('should NOT skip threads if an earlier message involved the escalation email but the latest does not', () => {
         // removed allowlist
+        CONFIG.ENABLE_ESCALATIONS = true;
         CONFIG.ESCALATION_EMAIL = 'reservations+escalated@opf.energy';
         const mockThread = {
             getId: () => 'thread_escalate_removed',
