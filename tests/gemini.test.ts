@@ -55,7 +55,7 @@ describe('gemini.ts response generation', () => {
             {
                 id: "msg_1",
                 sender: "user@example.com",
-                recipient: "reservations@sanmarinotennis.org",
+                recipient: "help@opf.energy",
                 subject: "Test Subject",
                 date: new Date("2026-02-27T10:00:00Z") as any, // bypass GAS types
                 body: "When is the clinic?",

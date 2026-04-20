@@ -204,15 +204,15 @@ function shouldIgnore(botEmailAddress: string, threadId: string, parsedMessages:
         return true;
     }
 
-    // 3. Check if any staff member (@sanmarinotennis.org) has responded in the thread.
+    // 3. Check if any staff member (@opf.energy) has responded in the thread.
     // We exclude the bot's own email address to allow the bot to respond.
     const staffResponded = parsedMessages.some(msg => {
         const email = extractEmailAddress(msg.sender);
-        return email.endsWith('@sanmarinotennis.org') && email !== botEmailAddress.toLowerCase();
+        return email.endsWith('@opf.energy') && email !== botEmailAddress.toLowerCase();
     });
 
     if (staffResponded) {
-        console.log(`Skipping Thread ID: ${threadId} because a staff member (@sanmarinotennis.org) has already responded.`);
+        console.log(`Skipping Thread ID: ${threadId} because a staff member (@opf.energy) has already responded.`);
         return true;
     }
 

@@ -33,7 +33,7 @@ describe('gmail.ts unread thread fetching', () => {
                     {
                         getId: () => 'msg_1',
                         getFrom: () => 'user@example.com',
-                        getTo: () => 'reservations@sanmarinotennis.org',
+                        getTo: () => 'help@opf.energy',
                         getSubject: () => 'Test Subject',
                         getDate: () => new Date(),
                         getPlainBody: () => 'Hello',
@@ -42,7 +42,7 @@ describe('gmail.ts unread thread fetching', () => {
                     },
                     {
                         getId: () => 'msg_2',
-                        getFrom: () => 'skye@sanmarinotennis.org', // Bot is the last sender
+                        getFrom: () => 'skye@opf.energy', // Bot is the last sender
                         getTo: () => 'user@example.com',
                         getSubject: () => 'Re: Test Subject',
                         getDate: () => new Date(),
@@ -70,7 +70,7 @@ describe('gmail.ts unread thread fetching', () => {
                 getMessages: () => [
                     {
                         getId: () => 'msg_1',
-                        getFrom: () => 'skye@sanmarinotennis.org', // Bot started the thread
+                        getFrom: () => 'skye@opf.energy', // Bot started the thread
                         getTo: () => 'user@example.com',
                         getSubject: () => 'Test Subject',
                         getDate: () => new Date(),
@@ -81,7 +81,7 @@ describe('gmail.ts unread thread fetching', () => {
                     {
                         getId: () => 'msg_2',
                         getFrom: () => 'user@example.com', // User replied recently
-                        getTo: () => 'reservations@sanmarinotennis.org',
+                        getTo: () => 'help@opf.energy',
                         getSubject: () => 'Re: Test Subject',
                         getDate: () => new Date(),
                         getPlainBody: () => 'Thank you',
@@ -107,8 +107,8 @@ describe('gmail.ts unread thread fetching', () => {
         // Generate 11 bot replies and 12 user messages
         const mockMessages = Array.from({ length: 23 }, (_, i) => ({
             getId: () => `msg_${i}`,
-            getFrom: () => (i % 2 === 0 ? 'user@example.com' : 'skye@sanmarinotennis.org'),
-            getTo: () => 'reservations@sanmarinotennis.org',
+            getFrom: () => (i % 2 === 0 ? 'user@example.com' : 'skye@opf.energy'),
+            getTo: () => 'help@opf.energy',
             getSubject: () => 'Long Thread',
             getDate: () => new Date(),
             getPlainBody: () => `Message ${i}`,
@@ -142,8 +142,8 @@ describe('gmail.ts unread thread fetching', () => {
         // Generate 10 bot replies and 11 user messages
         const mockMessages = Array.from({ length: 21 }, (_, i) => ({
             getId: () => `msg_${i}`,
-            getFrom: () => (i % 2 === 0 ? 'user@example.com' : 'skye@sanmarinotennis.org'),
-            getTo: () => 'reservations@sanmarinotennis.org',
+            getFrom: () => (i % 2 === 0 ? 'user@example.com' : 'skye@opf.energy'),
+            getTo: () => 'help@opf.energy',
             getSubject: () => 'Long Thread',
             getDate: () => new Date(),
             getPlainBody: () => `Message ${i}`,
@@ -179,7 +179,7 @@ describe('gmail.ts unread thread fetching', () => {
                 {
                     getId: () => 'msg_1',
                     getFrom: () => 'notifications@courtreserve.com',
-                    getTo: () => 'reservations@sanmarinotennis.org',
+                    getTo: () => 'help@opf.energy',
                     getSubject: () => 'Notification',
                     getDate: () => new Date(),
                     getPlainBody: () => 'Sys alert',
@@ -205,8 +205,8 @@ describe('gmail.ts unread thread fetching', () => {
             getMessages: () => [
                 {
                     getId: () => 'msg_1',
-                    getFrom: () => 'Staff Member <staff@sanmarinotennis.org>',
-                    getTo: () => 'reservations@sanmarinotennis.org',
+                    getFrom: () => 'Staff Member <staff@opf.energy>',
+                    getTo: () => 'help@opf.energy',
                     getSubject: () => 'Internal memo',
                     getDate: () => new Date(),
                     getPlainBody: () => 'Alert',
@@ -228,7 +228,7 @@ describe('gmail.ts unread thread fetching', () => {
 
     it('should skip and mark read threads if the last message involves the escalation email', () => {
         // removed allowlist
-        CONFIG.ESCALATION_EMAIL = 'reservations+escalated@sanmarinotennis.org';
+        CONFIG.ESCALATION_EMAIL = 'reservations+escalated@opf.energy';
         const mockThread = {
             getId: () => 'thread_escalated',
             getFirstMessageSubject: () => 'Help me',
@@ -236,7 +236,7 @@ describe('gmail.ts unread thread fetching', () => {
                 {
                     getId: () => 'msg_1',
                     getFrom: () => 'user@example.com',
-                    getTo: () => 'reservations@sanmarinotennis.org',
+                    getTo: () => 'help@opf.energy',
                     getSubject: () => 'Help me',
                     getDate: () => new Date(),
                     getPlainBody: () => 'I need human help',
@@ -246,7 +246,7 @@ describe('gmail.ts unread thread fetching', () => {
                 {
                     getId: () => 'msg_2',
                     getFrom: () => 'user@example.com',
-                    getTo: () => 'reservations@sanmarinotennis.org, reservations+escalated@sanmarinotennis.org',
+                    getTo: () => 'help@opf.energy, reservations+escalated@opf.energy',
                     getSubject: () => 'Re: Help me',
                     getDate: () => new Date(),
                     getPlainBody: () => 'Forwarding to escalated',
@@ -267,7 +267,7 @@ describe('gmail.ts unread thread fetching', () => {
 
     it('should NOT skip threads if an earlier message involved the escalation email but the latest does not', () => {
         // removed allowlist
-        CONFIG.ESCALATION_EMAIL = 'reservations+escalated@sanmarinotennis.org';
+        CONFIG.ESCALATION_EMAIL = 'reservations+escalated@opf.energy';
         const mockThread = {
             getId: () => 'thread_escalate_removed',
             getFirstMessageSubject: () => 'Help me',
@@ -275,7 +275,7 @@ describe('gmail.ts unread thread fetching', () => {
                 {
                     getId: () => 'msg_1',
                     getFrom: () => 'user@example.com',
-                    getTo: () => 'reservations@sanmarinotennis.org, reservations+escalated@sanmarinotennis.org',
+                    getTo: () => 'help@opf.energy, reservations+escalated@opf.energy',
                     getSubject: () => 'Help me',
                     getDate: () => new Date(),
                     getPlainBody: () => 'I need human help',
@@ -285,7 +285,7 @@ describe('gmail.ts unread thread fetching', () => {
                 {
                     getId: () => 'msg_2',
                     getFrom: () => 'user@example.com',
-                    getTo: () => 'reservations@sanmarinotennis.org',
+                    getTo: () => 'help@opf.energy',
                     getSubject: () => 'Re: Help me',
                     getDate: () => new Date(),
                     getPlainBody: () => 'Continuing thread',
@@ -306,7 +306,7 @@ describe('gmail.ts unread thread fetching', () => {
 
     it('should flag threads sent directly to the bot with needsCannedResponse = true', () => {
         // removed allowlist
-        CONFIG.VALID_TARGET_EMAILS = ['reservations@sanmarinotennis.org'];
+        CONFIG.VALID_TARGET_EMAILS = ['help@opf.energy'];
         const mockThread = {
             getId: () => 'thread_direct',
             getFirstMessageSubject: () => 'Hello Bot',
@@ -314,7 +314,7 @@ describe('gmail.ts unread thread fetching', () => {
                 {
                     getId: () => 'msg_1',
                     getFrom: () => 'user@example.com',
-                    getTo: () => 'skye@sanmarinotennis.org',
+                    getTo: () => 'skye@opf.energy',
                     getSubject: () => 'Hello Bot',
                     getDate: () => new Date(),
                     getPlainBody: () => 'Hello there',
@@ -335,7 +335,7 @@ describe('gmail.ts unread thread fetching', () => {
 
     it('should NOT flag threads sent to a valid target email even if the bot is CCd', () => {
         // removed allowlist
-        CONFIG.VALID_TARGET_EMAILS = ['reservations@sanmarinotennis.org'];
+        CONFIG.VALID_TARGET_EMAILS = ['help@opf.energy'];
         const mockThread = {
             getId: () => 'thread_valid',
             getFirstMessageSubject: () => 'Help with court',
@@ -343,7 +343,7 @@ describe('gmail.ts unread thread fetching', () => {
                 {
                     getId: () => 'msg_1',
                     getFrom: () => 'user@example.com',
-                    getTo: () => 'reservations@sanmarinotennis.org, skye@sanmarinotennis.org',
+                    getTo: () => 'help@opf.energy, skye@opf.energy',
                     getSubject: () => 'Help with court',
                     getDate: () => new Date(),
                     getPlainBody: () => 'Please help',
@@ -361,7 +361,7 @@ describe('gmail.ts unread thread fetching', () => {
         expect(result.length).toBe(1);
         expect(result[0].needsCannedResponse).toBe(false);
     });
-    it('should ignore threads where a staff member (@sanmarinotennis.org) has replied', () => {
+    it('should ignore threads where a staff member (@opf.energy) has replied', () => {
         // removed allowlist
         const mockThread = {
             getId: () => 'thread_staff',
@@ -370,7 +370,7 @@ describe('gmail.ts unread thread fetching', () => {
                 {
                     getId: () => 'msg_1',
                     getFrom: () => 'user@example.com',
-                    getTo: () => 'reservations@sanmarinotennis.org',
+                    getTo: () => 'help@opf.energy',
                     getSubject: () => 'Information',
                     getDate: () => new Date(),
                     getPlainBody: () => 'Question',
@@ -379,7 +379,7 @@ describe('gmail.ts unread thread fetching', () => {
                 },
                 {
                     getId: () => 'msg_2',
-                    getFrom: () => 'rand@sanmarinotennis.org', // Staff replied
+                    getFrom: () => 'rand@opf.energy', // Staff replied
                     getTo: () => 'user@example.com',
                     getSubject: () => 'Re: Information',
                     getDate: () => new Date(),
@@ -399,7 +399,7 @@ describe('gmail.ts unread thread fetching', () => {
         expect(mockThread.markRead).toHaveBeenCalled();
     });
 
-    it('should NOT ignore threads if the bot is the only @sanmarinotennis.org address that replied', () => {
+    it('should NOT ignore threads if the bot is the only @opf.energy address that replied', () => {
         // removed allowlist
         const mockThread = {
             getId: () => 'thread_bot',
@@ -407,7 +407,7 @@ describe('gmail.ts unread thread fetching', () => {
             getMessages: () => [
                 {
                     getId: () => 'msg_1',
-                    getFrom: () => 'skye@sanmarinotennis.org', // Bot replied
+                    getFrom: () => 'skye@opf.energy', // Bot replied
                     getTo: () => 'user@example.com',
                     getSubject: () => 'Re: Information',
                     getDate: () => new Date(),
@@ -418,7 +418,7 @@ describe('gmail.ts unread thread fetching', () => {
                 {
                     getId: () => 'msg_2',
                     getFrom: () => 'user@example.com',
-                    getTo: () => 'reservations@sanmarinotennis.org',
+                    getTo: () => 'help@opf.energy',
                     getSubject: () => 'Re: Information',
                     getDate: () => new Date(),
                     getPlainBody: () => 'Ok',
