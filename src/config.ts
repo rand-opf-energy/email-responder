@@ -1,6 +1,6 @@
 export const CONFIG = {
     // GCP Project ID for Vertex AI
-    PROJECT_ID: "opf-energy",
+    PROJECT_ID: "opf-insight",
 
     // Vertex AI Region
     LOCATION: "global",
