@@ -21,7 +21,7 @@ export interface ParsedThread {
     threadId: string;
     subject: string;
     messages: ParsedEmail[];
-    isEscalated?: boolean;
+    reachedMaxResponses?: boolean;
     needsCannedResponse?: boolean;
 }
 
@@ -77,10 +77,10 @@ export function filterThreads(threads: GoogleAppsScript.Gmail.GmailThread[]): Pa
         }
 
 
-        let isEscalated = false;
-        if (CONFIG.ENABLE_ESCALATIONS && botMessageCount >= CONFIG.MAX_BOT_RESPONSES) {
-            console.log(`Thread ID: ${threadId} reached or exceeded ${CONFIG.MAX_BOT_RESPONSES} bot responses. Flagging for escalation.`);
-            isEscalated = true;
+        let reachedMaxResponses = false;
+        if (botMessageCount >= CONFIG.MAX_BOT_RESPONSES) {
+            console.log(`Thread ID: ${threadId} reached or exceeded ${CONFIG.MAX_BOT_RESPONSES} bot responses. Flagging for max responses message.`);
+            reachedMaxResponses = true;
         }
 
         const lastMessage = parsedMessages[parsedMessages.length - 1];
@@ -94,7 +94,7 @@ export function filterThreads(threads: GoogleAppsScript.Gmail.GmailThread[]): Pa
         // Wait, the above block already skips it if the bot was the last sender.
         // That means we only hit this line when the USER just sent the message that puts us *at* 
         // the max response count (or beyond it, e.g. if config changes).
-        // Since isEscalated makes the main loop send the final message, we want to proceed.
+        // Since reachedMaxResponses makes the main loop send the final message, we want to proceed.
 
         let needsCannedResponse = false;
         const combinedRecipients = (lastMessage.recipient + " " + (lastMessage.cc || "")).toLowerCase();
@@ -111,7 +111,7 @@ export function filterThreads(threads: GoogleAppsScript.Gmail.GmailThread[]): Pa
             threadId,
             subject,
             messages: parsedMessages,
-            isEscalated,
+            reachedMaxResponses,
             needsCannedResponse
         });
     }

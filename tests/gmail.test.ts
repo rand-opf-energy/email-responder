@@ -100,7 +100,7 @@ describe('gmail.ts unread thread fetching', () => {
         expect(result.length).toBe(1);
         expect(result[0].threadId).toBe('thread_1');
         expect(result[0].messages.length).toBe(2);
-        expect(result[0].isEscalated).toBe(false);
+        expect(result[0].reachedMaxResponses).toBe(false);
     });
 
     it('should skip but not flag threads where the bot has replied >10 times', () => {
@@ -136,7 +136,7 @@ describe('gmail.ts unread thread fetching', () => {
         // logic, it now *always* flags for escalation instead.
         expect(result.length).toBe(1);
         expect(result[0].messages.length).toBe(23);
-        expect(result[0].isEscalated).toBe(true);
+        expect(result[0].reachedMaxResponses).toBe(true);
     });
 
     it('should return and flag threads where the bot has replied exactly 10 times', () => {
@@ -170,7 +170,7 @@ describe('gmail.ts unread thread fetching', () => {
         expect(mockSearch).toHaveBeenCalled();
         expect(result.length).toBe(1);
         expect(result[0].messages.length).toBe(21);
-        expect(result[0].isEscalated).toBe(true);
+        expect(result[0].reachedMaxResponses).toBe(true);
     });
 
     it('should skip and mark read threads from ignored senders', () => {

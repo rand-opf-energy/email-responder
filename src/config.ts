@@ -41,6 +41,6 @@ This message was fetched by Opti, the OPF Energy AI-powered assistant.
     // Escalation settings
     ENABLE_ESCALATIONS: false, // Set to true to enable escalation logic
     ESCALATION_EMAIL: "", // TODO: Setup escalation infra and add email here
-    ESCALATION_MESSAGE: "This thread has reached the maximum number of automated responses and requires human review.",
+    MAX_RESPONSES_MESSAGE: "This thread has reached the maximum number of automated responses and requires human review.",
     MAX_BOT_RESPONSES: 10,
 };

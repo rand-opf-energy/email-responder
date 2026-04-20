@@ -44,7 +44,7 @@ describe("main.ts processEmailsTick", () => {
                 threadId: "thread_test",
                 subject: "Test Subject",
                 messages: [],
-                isEscalated: false,
+                reachedMaxResponses: false,
                 needsCannedResponse: false
             }
         ]);
@@ -62,7 +62,9 @@ describe("main.ts processEmailsTick", () => {
     });
 
     it("should handle escalated threads and include htmlBody", () => {
-        const fakeEscalationResponse = CONFIG.ESCALATION_MESSAGE;
+        CONFIG.ENABLE_ESCALATIONS = true;
+        CONFIG.ESCALATION_EMAIL = "escalated@opf.energy";
+        const fakeEscalationResponse = CONFIG.MAX_RESPONSES_MESSAGE;
         const expectedHtmlBody = fakeEscalationResponse.replace(/\r?\n/g, "<br>");
 
         mockGetThreads.mockReturnValue([
@@ -70,7 +72,7 @@ describe("main.ts processEmailsTick", () => {
                 threadId: "thread_escalated_test",
                 subject: "Test Escalation",
                 messages: [],
-                isEscalated: true,
+                reachedMaxResponses: true,
                 needsCannedResponse: false
             }
         ]);

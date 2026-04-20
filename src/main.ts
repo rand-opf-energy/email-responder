@@ -35,9 +35,9 @@ function processEmailsTick() {
             if (thread.needsCannedResponse) {
                 console.log("Thread is a direct message. Skipping Vertex AI and sending canned response...");
                 aiResponse = CONFIG.CANNED_DIRECT_MESSAGE;
-            } else if (thread.isEscalated) {
-                console.log("Thread is flagged for escalation. Skipping Vertex AI...");
-                aiResponse = CONFIG.ESCALATION_MESSAGE;
+            } else if (thread.reachedMaxResponses) {
+                console.log("Thread has reached max responses. Skipping Vertex AI...");
+                aiResponse = CONFIG.MAX_RESPONSES_MESSAGE;
             } else {
                 console.log("Generating response from Vertex AI...");
                 aiResponse = generateGeminiResponse(thread);
@@ -48,7 +48,7 @@ function processEmailsTick() {
             console.log(`================================`);
             console.log(aiResponse);
 
-            const bodyContent = thread.isEscalated ? aiResponse : `${aiResponse}\n\n${CONFIG.SIGNATURE}`;
+            const bodyContent = thread.reachedMaxResponses ? aiResponse : `${aiResponse}\n\n${CONFIG.SIGNATURE}`;
             const htmlBodyContent = bodyContent.replace(/\r?\n/g, "<br>");
 
             try {
@@ -57,7 +57,7 @@ function processEmailsTick() {
                     const options: GoogleAppsScript.Gmail.GmailAdvancedOptions = {
                         htmlBody: htmlBodyContent
                     };
-                    if (thread.isEscalated) {
+                    if (CONFIG.ENABLE_ESCALATIONS && thread.reachedMaxResponses && CONFIG.ESCALATION_EMAIL) {
                         options.bcc = CONFIG.ESCALATION_EMAIL;
                     }
 
