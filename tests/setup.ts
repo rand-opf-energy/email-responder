@@ -13,7 +13,7 @@
 
 (global as any).Session = {
     getEffectiveUser: () => ({
-        getEmail: () => 'skye@opf.energy'
+        getEmail: () => 'opti@opf.energy'
     })
 };
 

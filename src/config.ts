@@ -9,13 +9,11 @@ export const CONFIG = {
     MODEL: "gemini-3.1-pro-preview",
 
     // Google Doc ID containing the system instructions (the bot's "persona" and rules)
-    SYSTEM_INSTRUCTION_DOC_ID: "1ph_0Eujc5wNEViwb0UyWP6JOVvWiE8M4KIlIvVexv2k",
+    SYSTEM_INSTRUCTION_DOC_ID: "TODO: Add system instruction doc id here",
 
     // Array of Google Doc IDs containing context/reference information for the AI (e.g. schedules)
     CONTEXT_DOC_IDS: [
-        "1fGHnNLqIfP7SwvcR7oW6p-WIVshe9rCi4Aqp4gH01zM",
-        "1PCFW_I3aKNluD6PNn2Zd9KXal-vKdAwZWM8_jhmImHA",
-        "1QA4YoQVxshtM5qtN0Fyg0lmGcxb-7rgA-kS94ldePjQ"
+        "TODO: Add context doc id here"
     ],
 
     // The addresses that the bot monitors and acts on behalf of
@@ -31,20 +29,17 @@ export const CONFIG = {
 
     // List of domains that the bot should completely ignore and never reply to
     IGNORED_DOMAINS: [
-        "opf.energy",
-        "courtreserve.com",
-        "safesavepayments.com"
+        "opf.energy"
     ],
 
     // The signature/disclaimer to append to the end of every AI-generated email
     SIGNATURE: `
 ---
-This message was fetched by Skye, the SMTC AI-powered mascot.
-For immediate assistance or if this response was unhelpful, please reply to help+escalated@opf.energy and a human staff member will assist you shortly.
+This message was fetched by Opti, the OPF Energy AI-powered assistant.
     `.trim(),
 
     // Escalation settings
-    ESCALATION_EMAIL: "help+escalated@opf.energy",
+    ESCALATION_EMAIL: "", // TODO: Setup escalation infra and add email here
     ESCALATION_MESSAGE: "This thread has reached the maximum number of automated responses and requires human review.",
     MAX_BOT_RESPONSES: 10,
 };

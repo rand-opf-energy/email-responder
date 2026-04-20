@@ -195,9 +195,13 @@ function shouldIgnore(botEmailAddress: string, threadId: string, parsedMessages:
     }
 
     // 2. Do not process if the last message involves the escalation email address
-    const involvesEscalationEmail =
-        lastMessage.recipient.toLowerCase().includes(CONFIG.ESCALATION_EMAIL.toLowerCase()) ||
-        (lastMessage.cc && lastMessage.cc.toLowerCase().includes(CONFIG.ESCALATION_EMAIL.toLowerCase()));
+    let involvesEscalationEmail = false;
+    if (CONFIG.ESCALATION_EMAIL) {
+        involvesEscalationEmail = Boolean(
+            lastMessage.recipient.toLowerCase().includes(CONFIG.ESCALATION_EMAIL.toLowerCase()) ||
+            (lastMessage.cc && lastMessage.cc.toLowerCase().includes(CONFIG.ESCALATION_EMAIL.toLowerCase()))
+        );
+    }
 
     if (involvesEscalationEmail) {
         console.log(`Skipping Thread ID: ${threadId} because the last message involves the escalation email (${CONFIG.ESCALATION_EMAIL}).`);

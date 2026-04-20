@@ -42,7 +42,7 @@ describe('gmail.ts unread thread fetching', () => {
                     },
                     {
                         getId: () => 'msg_2',
-                        getFrom: () => 'skye@opf.energy', // Bot is the last sender
+                        getFrom: () => 'opti@opf.energy', // Bot is the last sender
                         getTo: () => 'user@example.com',
                         getSubject: () => 'Re: Test Subject',
                         getDate: () => new Date(),
@@ -70,7 +70,7 @@ describe('gmail.ts unread thread fetching', () => {
                 getMessages: () => [
                     {
                         getId: () => 'msg_1',
-                        getFrom: () => 'skye@opf.energy', // Bot started the thread
+                        getFrom: () => 'opti@opf.energy', // Bot started the thread
                         getTo: () => 'user@example.com',
                         getSubject: () => 'Test Subject',
                         getDate: () => new Date(),
@@ -107,7 +107,7 @@ describe('gmail.ts unread thread fetching', () => {
         // Generate 11 bot replies and 12 user messages
         const mockMessages = Array.from({ length: 23 }, (_, i) => ({
             getId: () => `msg_${i}`,
-            getFrom: () => (i % 2 === 0 ? 'user@example.com' : 'skye@opf.energy'),
+            getFrom: () => (i % 2 === 0 ? 'user@example.com' : 'opti@opf.energy'),
             getTo: () => 'help@opf.energy',
             getSubject: () => 'Long Thread',
             getDate: () => new Date(),
@@ -142,7 +142,7 @@ describe('gmail.ts unread thread fetching', () => {
         // Generate 10 bot replies and 11 user messages
         const mockMessages = Array.from({ length: 21 }, (_, i) => ({
             getId: () => `msg_${i}`,
-            getFrom: () => (i % 2 === 0 ? 'user@example.com' : 'skye@opf.energy'),
+            getFrom: () => (i % 2 === 0 ? 'user@example.com' : 'opti@opf.energy'),
             getTo: () => 'help@opf.energy',
             getSubject: () => 'Long Thread',
             getDate: () => new Date(),
@@ -172,13 +172,14 @@ describe('gmail.ts unread thread fetching', () => {
     });
 
     it('should skip and mark read threads from ignored senders', () => {
+        CONFIG.IGNORED_SENDERS = ['ignored@example.com'];
         const mockThread = {
             getId: () => 'thread_ignored',
             getFirstMessageSubject: () => 'Notification',
             getMessages: () => [
                 {
                     getId: () => 'msg_1',
-                    getFrom: () => 'notifications@courtreserve.com',
+                    getFrom: () => 'ignored@example.com',
                     getTo: () => 'help@opf.energy',
                     getSubject: () => 'Notification',
                     getDate: () => new Date(),
@@ -199,13 +200,14 @@ describe('gmail.ts unread thread fetching', () => {
     });
 
     it('should skip and mark read threads from ignored domains', () => {
+        CONFIG.IGNORED_DOMAINS = ['ignored-domain.com'];
         const mockThread = {
             getId: () => 'thread_domain',
             getFirstMessageSubject: () => 'Internal memo',
             getMessages: () => [
                 {
                     getId: () => 'msg_1',
-                    getFrom: () => 'Staff Member <staff@opf.energy>',
+                    getFrom: () => 'Staff Member <staff@ignored-domain.com>',
                     getTo: () => 'help@opf.energy',
                     getSubject: () => 'Internal memo',
                     getDate: () => new Date(),
@@ -314,7 +316,7 @@ describe('gmail.ts unread thread fetching', () => {
                 {
                     getId: () => 'msg_1',
                     getFrom: () => 'user@example.com',
-                    getTo: () => 'skye@opf.energy',
+                    getTo: () => 'opti@opf.energy',
                     getSubject: () => 'Hello Bot',
                     getDate: () => new Date(),
                     getPlainBody: () => 'Hello there',
@@ -343,7 +345,7 @@ describe('gmail.ts unread thread fetching', () => {
                 {
                     getId: () => 'msg_1',
                     getFrom: () => 'user@example.com',
-                    getTo: () => 'help@opf.energy, skye@opf.energy',
+                    getTo: () => 'help@opf.energy, opti@opf.energy',
                     getSubject: () => 'Help with court',
                     getDate: () => new Date(),
                     getPlainBody: () => 'Please help',
@@ -407,7 +409,7 @@ describe('gmail.ts unread thread fetching', () => {
             getMessages: () => [
                 {
                     getId: () => 'msg_1',
-                    getFrom: () => 'skye@opf.energy', // Bot replied
+                    getFrom: () => 'opti@opf.energy', // Bot replied
                     getTo: () => 'user@example.com',
                     getSubject: () => 'Re: Information',
                     getDate: () => new Date(),
