@@ -9,12 +9,10 @@ export const CONFIG = {
     MODEL: "gemini-3.1-pro-preview",
 
     // Google Doc ID containing the system instructions (the bot's "persona" and rules)
-    SYSTEM_INSTRUCTION_DOC_ID: "TODO: Add system instruction doc id here",
+    SYSTEM_INSTRUCTION_DOC_ID: "1sLXkX7hxgrt8qxorh0kHYsRd4vwb2ut6hpfaGRSjocs",
 
     // Array of Google Doc IDs containing context/reference information for the AI (e.g. schedules)
-    CONTEXT_DOC_IDS: [
-        "TODO: Add context doc id here"
-    ],
+    CONTEXT_DOC_IDS: [],
 
     // The addresses that the bot monitors and acts on behalf of
     VALID_TARGET_EMAILS: [
