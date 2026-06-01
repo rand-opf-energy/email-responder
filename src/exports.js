@@ -9,3 +9,7 @@ function processEmailsTick() {
 function installTrigger() {
     return globalThis.installTrigger();
 }
+
+function doGet(e) {
+    return globalThis.handleGetRequest(e);
+}

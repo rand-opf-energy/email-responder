@@ -1,6 +1,7 @@
 import { getThreads, markThreadAsRead } from "./gmail";
 import { generateGeminiResponse } from "./gemini";
 import { CONFIG } from "./config";
+import "./api";
 /**
  * Global entry point executed every minute by the time-driven trigger.
  * This reads unread threads, routes them to Vertex AI, and replies to them.

@@ -31,3 +31,33 @@ This is a Google Apps Script project compiled from TypeScript. It scans the `hel
 - **NEVER** modify `.clasp.json`'s `scriptId` unless directly instructed to point to a new environment.
 - Any modifications to the `UrlFetchApp` payload must respect the latest Vertex AI prompt object schema for `gemini-3.1-pro-preview`.
 - Do not commit physical OAuth credentials or personal access tokens to this repository. All execution relies on the native `ScriptApp.getOAuthToken()` bound to the identity running the trigger.
+
+---
+
+## 🧭 When to Invoke Custom Skills
+
+### `read-email` Skill
+The `read-email` skill is registered locally under `.agent/skills/read-email/`. You should invoke this skill in the following scenarios:
+
+1. **Investigating Recent Emails**:
+   - Invoke when the user asks: *"What are the latest emails?"*, *"Tell me about recent messages"*, or requests status updates on current active threads. This ensures you provide real-time, accurate context.
+2. **Validating Bot Behavior & Responses**:
+   - Invoke when verifying if the bot processed an email correctly (e.g., drafted the correct reply, or naturally locked a thread by becoming the last sender). This lets you double-check the bot's live operations without relying on fragile read/unread flags.
+3. **Debugging Specific Ticket Issues**:
+   - Invoke when the user reports an issue with a specific ticket or thread. Use this skill with a targeted query (e.g., search by thread ID or sender address) to retrieve the exact conversation history.
+4. **Monitoring Support Channels**:
+   - Invoke when checking the current status or content of threads involving `help@opf.energy`.
+
+---
+
+## 🤖 Thread-State-Driven State Validation
+
+The bot decides whether to reply to active threads strictly based on sender history rather than Gmail read/unread flags:
+- **Bot Will Process**: Any thread where the customer was the last sender and no human staff member (`@opf.energy`) has replied.
+- **Bot Will Skip**: Any thread where the bot or a human staff member (`@opf.energy`) is the last sender.
+
+When using the `read-email` skill to debug responder behaviors, examine the **last message's sender** in the parsed output to verify if the thread is correctly locked or eligible for response.
+
+> [!TIP]
+> Always invoke the `read-email` skill to inspect the real-time state of Gmail threads when performing validation tasks, grounding your decisions in actual, verified inbox data rather than assumptions.
+
